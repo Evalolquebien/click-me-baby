@@ -1,1 +1,105 @@
-evalolquebien 
+import pygame
+import random
+import sys
+
+# ----------------------------------------
+# JUEGO: HAZ CLIC EN LOS CÍRCULOS ROSADOS
+# Con manejo de errores y efectos de sonido
+# ----------------------------------------
+
+try:
+    # Inicializar Pygame
+    pygame.init()
+
+    # Configurar pantalla
+    ANCHO, ALTO = 800, 600
+    pantalla = pygame.display.set_mode((ANCHO, ALTO))
+    pygame.display.set_caption("Haz clic en los círculos rosados")
+
+    # Colores
+    ROSA = (255, 105, 180)
+    BLANCO = (255, 255, 255)
+    NEGRO = (0, 0, 0)
+
+    # Reloj del juego
+    clock = pygame.time.Clock()
+
+    # Variables del juego
+    radio = 40
+    puntaje = 0
+    tiempo_circulo = 1000  # tiempo visible del círculo (ms)
+    ultimo_cambio = pygame.time.get_ticks()
+    circulo_visible = True
+
+    # Cargar sonidos
+    try:
+        sonido_pop = pygame.mixer.Sound("sonidos/pop.mp3")      # sonido de acierto
+        sonido_error = pygame.mixer.Sound("sonidos/error.mp3")  # sonido de error
+    except pygame.error:
+        print("⚠️ No se pudieron cargar los sonidos. Verifica los archivos.")
+        sonido_pop = None
+        sonido_error = None
+
+    # Fuente para el texto
+    fuente = pygame.font.SysFont("Arial", 30)
+
+    # Crear primer círculo
+    x = random.randint(radio, ANCHO - radio)
+    y = random.randint(radio, ALTO - radio)
+
+    # Bucle principal
+    while True:
+        pantalla.fill(BLANCO)
+        ahora = pygame.time.get_ticks()
+
+        # Verificar si debe aparecer un nuevo círculo
+        if ahora - ultimo_cambio > tiempo_circulo:
+            x = random.randint(radio, ANCHO - radio)
+            y = random.randint(radio, ALTO - radio)
+            ultimo_cambio = ahora
+            circulo_visible = True
+
+        # Dibujar círculo
+        if circulo_visible:
+            pygame.draw.circle(pantalla, ROSA, (x, y), radio)
+
+        # Mostrar puntaje
+        texto = fuente.render(f"Puntaje: {puntaje}", True, NEGRO)
+        pantalla.blit(texto, (10, 10))
+
+        # Eventos
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if evento.type == pygame.MOUSEBUTTONDOWN:
+                try:
+                    pos_click = pygame.mouse.get_pos()
+                    distancia = ((pos_click[0] - x) ** 2 + (pos_click[1] - y) ** 2) ** 0.5
+
+                    if distancia <= radio and circulo_visible:
+                        puntaje += 1
+                        circulo_visible = False
+                        if sonido_pop:
+                            sonido_pop.play()  # sonido de acierto
+                    else:
+                        puntaje -= 1 if puntaje > 0 else 0
+                        if sonido_error:
+                            sonido_error.play()  # sonido de error
+                except Exception as e:
+                    print("Error al procesar el clic:", e)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+# Captura de errores generales
+except pygame.error as e:
+    print("Error de Pygame:", e)
+
+except Exception as e:
+    print("Ocurrió un error inesperado:", e)
+
+finally:
+    pygame.quit()
+    print("Juego finalizado.")
